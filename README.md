@@ -1,0 +1,2 @@
+This repo is dedicated broadly to recaputilating various important relevant to machine learning in idealized orsettings, such as linear models, or now canonical and thoroughly studied datasets, such as CIFAR-10.
+Some of the contents of these scripts and notebooks follow papers, such as "A Solveable Model of Neural Scaling Laws" by Maloney, Roberts, and Sully, adding some additional explorations interspersed throughout.
