@@ -14,6 +14,7 @@ M = 6000
 N = 400
 sigw2 = 1
 sigu2 = 1
+sige2 = 0
 wiI = torch.normal( torch.zeros((N, M), dtype=torch.float32)  , (sigw2/M)*torch.ones((N, M)) )
 uiI = torch.normal( torch.zeros((N, M), dtype=torch.float32)  , (sigu2/M)*torch.ones((N, M)) )
 thetaij = torch.randn((N, N),dtype=torch.float32)
@@ -46,7 +47,7 @@ def get_xI(n_samples):
 
 def dataset(n_points):
     xIs = get_xI(n_points)
-    yis = torch.einsum('ij,kj->ik',  xIs, wiI)
+    yis = torch.einsum('ij,kj->ik',  xIs, wiI)+sige2*torch.randn((n_points, N))
     return (xIs, yis)
 
 def phi(xI):
@@ -61,56 +62,6 @@ def zi(xI):
 #now we would like to construct a model for phi which we will train.
 #The solution to the regularized porblem is known analytically as this is the classic
 #problem in multiple regression 
-
-
-
-# %%
-
-gamma = 1e-7
-That = 1000
-
-def loss_data(T):
-    xIs, yis = dataset(T)
-    xIhats, yihats = dataset(That)
-    phis = torch.stack([phi(xI) for xI in xIs])
-
-    def qij(gamma):
-        return torch.linalg.inv(gamma*torch.diag(torch.ones((N,)))+ phis.transpose(-2, -1) @ phis)
-
-    def thetaijst(gamma):
-        qq = qij(gamma)
-        return torch.einsum('ai, jk, ak -> ij', yis, qq, phis)
-
-    theta_star = thetaijst(gamma)
-
-    def zist(xI):
-        return torch.einsum('ij,j->i', theta_star, phi(xI))
-
-
-    zsts =  torch.stack([zist(xIhat) for xIhat in xIhats])
-    loss = sum( [sum([x.item()**2 for x in zsts[i]-yihats[i] ]  ) for i in range(That)])/That
-    return loss
-
-losses = []
-T_data = []
-for x in torch.logspace(1/2, 4, 80, base= 10):
-    T = int(x.item())
-    T_data.append(T)
-    loss = loss_data(T)
-    losses.append(loss)
-
-plt.loglog(T_data, losses, '*', color='tab:orange')
-plt.xlim((7e-1, 1e4))
-plt.ylim((1e-7, 3e-4))
-plt.show()
-
-#%%
-plt.loglog(T_data, losses, '*', color='tab:orange')
-plt.xlim((7e-1, 1e4))
-plt.ylim((1e-7, 3e-4))
-plt.xlabel('T')
-plt.ylabel('L(T, N)')
-plt.show() 
 
 # %%
 #let's plot test loss as a function of ridge parameter in order to explore this
@@ -143,17 +94,65 @@ def loss_data(T, gamma):
 T = 100
 gamma_data = []
 losses = []
-for gamma in torch.logspace(-9, -6, 10):
+for gamma in torch.logspace(-10, -5, 25):
     gamma_data.append(gamma)
     loss = loss_data(T, gamma)
     losses.append(loss)
 
-plt.plot(gamma_data, losses)
-plt.show()
-# %%
-plt.plot(gamma_data[:-1], losses, 'o')
+plt.semilogx(gamma_data, losses, 'o')
+plt.title("Ridge Parameter vs. Average Loss for Training Set Size 100")
+plt.xlabel("$\gamma$")
+plt.ylabel("L")
 plt.show()
 
 # %%
-print('save')
-# %%
+#Now we put in the optimal ridge parameter by hand and plot versus data set size
+
+gamma = 1e-7
+That = 1000
+
+def loss_data(T):
+    xIs, yis = dataset(T)
+    xIhats, yihats = dataset(That)
+    phis = torch.stack([phi(xI) for xI in xIs])
+
+    def qij(gamma):
+        return torch.linalg.inv(gamma*torch.diag(torch.ones((N,)))+ phis.transpose(-2, -1) @ phis)
+
+    def thetaijst(gamma):
+        qq = qij(gamma)
+        return torch.einsum('ai, jk, ak -> ij', yis, qq, phis)
+
+    theta_star = thetaijst(gamma)
+
+    def zist(xI):
+        return torch.einsum('ij,j->i', theta_star, phi(xI))
+
+
+    zsts =  torch.stack([zist(xIhat) for xIhat in xIhats])
+    loss = sum( [sum([x.item()**2 for x in zsts[i]-yihats[i] ]  ) for i in range(That)])/That
+    return loss
+
+losses = []
+T_data = []
+for x in torch.logspace(1/2, 4, 60, base= 10):
+    T = int(x.item())
+    T_data.append(T)
+    loss = loss_data(T)
+    losses.append(loss)
+
+
+powerxs = np.arange(1, 1600, 10)
+powerys = [2.6e-5*(1/x+ 1/N) for x in powerxs]
+plt.loglog(powerxs, powerys, color = 'tab:orange')
+plt.loglog(T_data, losses, '*', color='tab:orange')
+
+
+
+plt.xlim((7e-1, 2e4))
+plt.ylim((5e-8, 3e-4))
+plt.title("Test Loss vs. Training Set Size")
+plt.xlabel("T")
+plt.ylabel("L")
+plt.legend(["prediction N = 400", "sample data N = 400", "prediction N = 100", "sample data N ="])
+plt.show()
