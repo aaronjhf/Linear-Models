@@ -1,2 +1,2 @@
-This repo is dedicated broadly to recaputilating various results relevant to machine learning in idealized settings, such as linear models, or now canonical and thoroughly studied datasets, such as CIFAR-10 and MNIST.
-Some of the contents of these scripts and notebooks follow papers, such as "A Solveable Model of Neural Scaling Laws" by Maloney, Roberts, and Sully, adding some additional explorations interspersed throughout.
+This repo is dedicated to recaputilating various results relevant to machine learning in idealized settings, such as linear models, or on now canonical and thoroughly studied datasets, such as CIFAR-10 and MNIST.
+We also follow "A Solveable Model of Neural Scaling Laws" by Maloney, Roberts, and Sully, which analyzes scaling in the case of random feature models. We intersperse additional explorations throughout.
