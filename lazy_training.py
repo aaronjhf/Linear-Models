@@ -5,6 +5,7 @@ from torch.nn import functional as F
 import numpy as np
 from matplotlib import pyplot as plt
 from collections import defaultdict
+import seaborn as sns # type: ignore
 
 torch.manual_seed(42) 
 
@@ -90,8 +91,21 @@ for t in range(P//B):
 
 
 # %%
-for gamma in loss_dict.keys():
-    plt.loglog([t for t in range(P//B)] , loss_dict[gamma])
+sns.set_style("whitegrid")
+sns.set_palette("plasma", len(loss_dict)-1)
+plt.figure(figsize=(8, 6))
+
+
+
+
+for gamma in [1e-05, 0.001, 0.1, 1]:
+    plt.plot([t for t in range(P//B)] , loss_dict[gamma], alpha=1.0)
+    plt.xscale('log')
+    plt.yscale('log')
+
+plt.plot([t for t in range(P//B)] , loss_dict[0], 'k--', alpha = 0.3)
+plt.xscale('log')
+plt.yscale('log')
 
 plt.show()
 # %%
@@ -100,4 +114,5 @@ So far we have seen that on the quadratic task, the lazy training regime (small 
 is equivalent to using the linearization of the model. 
 Next we will explore the Neutral Tangent Kernel (NTK), which is a good approximation at large width, where the weights naturally
 become lazy.
+So we want to train the linearized model and see how it compares to the wide MLP.
 """
