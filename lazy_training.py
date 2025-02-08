@@ -10,13 +10,13 @@ import seaborn as sns # type: ignore
 torch.manual_seed(42) 
 
 #input dimension
-D = 25
+D = 4
 #matrix dimension
-N = 5000
+N = 2000
 #batch dimension
 B = 64
 #number of data points
-P = 30000
+P = 10000
 
 
 # %%
@@ -45,7 +45,7 @@ loss_dict = defaultdict(list)
 
 
 for gamma in [1,  1e-1, 1e-3, 1e-5]:
-    params = [ torch.randn((i, j), requires_grad=True) for i, j in [(D, N), (N, N), (N, 1)] ]
+    params = [ torch.randn((i, j), requires_grad=True) for i, j in [(D, N),  (N, 1)] ]
     params0 = [torch.clone(param.detach()) for param in params]
 
 
@@ -72,7 +72,10 @@ for gamma in [1,  1e-1, 1e-3, 1e-5]:
         
 
  #%%
- #Now the explicitly linearized model        
+ #Now the explicitly linearized model 
+params = [ torch.randn((i, j), requires_grad=True) for i, j in [(D, N),  (N, 1)] ]
+params0 = [torch.clone(param.detach()) for param in params]    
+
 def linear_approx(params, params0, Xin, gamma):
     def f(params):
         return fwd_fn(params, Xin, gamma)
@@ -118,7 +121,11 @@ become lazy.
 So we want to train the linearized model and see how it compares to the wide MLP.
 """
 #%%
+params = [ torch.randn((i, j), requires_grad=True) for i, j in [(D, N), (N, 1)] ]
+params0 = [torch.clone(param.detach()) for param in params]
+
 gamma = 1
+N = 5000
 
 fwd_fn = lambda params, Xin, gamma : MLP(params, Xin, gamma)-MLP(params0, Xin, gamma)
 
@@ -130,8 +137,7 @@ def linear_approx(params, params0, Xin, gamma):
     _, jvp = torch.func.jvp(f, (params0,), (v,))
     return jvp
 
-params = [ torch.randn((i, j), requires_grad=True) for i, j in [(D, N), (N, N), (N, 1)] ]
-params0 = [torch.clone(param.detach()) for param in params]
+
 
 linear_fwd = lambda params, Xin, gamma : linear_approx(params, params0, Xin, gamma)
 linear_loss = lambda params, Xin, gamma, Yout : (linear_approx(params, params0, Xin, gamma)-Yout).transpose(0, 1) @(linear_approx(params, params0, Xin, gamma)-Yout) / Yout.shape[0]
@@ -154,8 +160,72 @@ for t in range(0, P//B):
     
 # %%
 plt.plot([t for t in range(P//B)] , loss_dict["linearized"], alpha = 1.0)
+plt.plot([t for t in range(P//B)] , loss_dict[1], alpha = 1.0)
 plt.xscale('log')
 plt.yscale('log')
 
 plt.show()
+# %%
+"""
+Computing the Neural Tangent Kernel
+"""
+
+def compute_ntk(fwd_fn, params, Xin, gamma):
+    # Compute the Jacobian of the model's output with respect to its parameters
+    def jacobian(fwd_fn, params, Xin, gamma):
+        output = fwd_fn(params, Xin, gamma)
+        jacobian = []
+        for out in output:
+            grad_params = torch.autograd.grad(out, params, retain_graph=True, create_graph=True)
+            jacobian.append(torch.cat([g.view(-1) for g in grad_params]))
+        return torch.stack(jacobian)
+
+    # Compute the Jacobians for both input sets
+    J = jacobian(fwd_fn, params, Xin, gamma)
+    
+
+    # Compute the NTK as the Gram matrix of the Jacobians
+    NTK = J @ J.transpose(0, 1)
+    return NTK
+
+# Example usage
+params = [torch.randn((i, j), requires_grad=True) for i, j in [(D, N), (N, 1)]]
+params0 = [torch.clone(param.detach()) for param in params]
+gamma = 1
+
+fwd_fn = lambda params, Xin, gamma : MLP(params, Xin, gamma) - MLP(params0, Xin, gamma)
+
+ntk = compute_ntk(fwd_fn, params, Xraw[0:10000], 1)
+spec = np.linalg.eigvalsh(np.array(ntk.detach()))
+plt.loglog([x for x in range(1, len(spec)+1)], sorted(spec)[::-1])
+plt.show()
+
+# %%
+def relu_ntk(X1, X2):
+    """
+    Compute the NTK for a single hidden layer with ReLU activation in the infinite width limit.
+    X1: torch.Tensor of shape (n1, d)
+    X2: torch.Tensor of shape (n2, d)
+    Returns: torch.Tensor of shape (n1, n2)
+    """
+    X1 = X1 / torch.norm(X1, dim=1, keepdim=True)
+    X2 = X2 / torch.norm(X2, dim=1, keepdim=True)
+    
+    dot_product = X1 @ X2.T
+    # Clip the dot product to the range [-1, 1] to avoid NaNs in arccos
+    dot_product = torch.clamp(dot_product, -1.0, 1.0)
+    theta = torch.acos(dot_product)
+    
+    ntk = (torch.sin(theta) + (np.pi - theta) * torch.cos(theta)) / np.pi
+    return ntk
+
+# Example usage
+ntk = relu_ntk(Xraw[0:10000], Xraw[0:10000])
+print(ntk)
+
+# Plot the eigenvalues of the NTK matrix
+spec = np.linalg.eigvalsh(np.array(ntk.detach()))
+plt.loglog([x for x in range(1, len(spec)+1)], sorted(spec)[::-1])
+plt.show()
+
 # %%
