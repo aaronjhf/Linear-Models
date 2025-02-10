@@ -125,15 +125,18 @@ plt.show()
 #%%
 #Now test loss fits
 
-CNN14fitx, CNN14fity = power_fit(CNN14_sizes_loaded, CNN14_losses_loaded)
-CNN3fitx, CNN3fity = power_fit(CNN3_sizes_loaded, CNN3_losses_loaded)
-MLPfitx, MLPfity = power_fit(MLP_sizes_loaded, MLP_losses_loaded)
+CNN14m, CNN14fc = power_fit(CNN14_sizes_loaded, CNN14_losses_loaded)
+CNN14fity = [np.exp(CNN14fc)*x**CNN14m for x in CNN14_sizes_loaded]
+CNN3m, CNN3c= power_fit(CNN3_sizes_loaded, CNN3_losses_loaded)
+CNN3fity = [np.exp(CNN3c)*x**CNN3m for x in CNN3_sizes_loaded]
+MLPm, MLPc = power_fit(MLP_sizes_loaded, MLP_losses_loaded)
+MLPfity = [np.exp(MLPc)*x**MLPm for x in MLP_sizes_loaded]
 plt.loglog(MLP_sizes_loaded, MLP_losses_loaded, "*")
 plt.loglog(CNN3_sizes_loaded, CNN3_losses_loaded, "*")
 plt.loglog(CNN14_sizes_loaded, CNN14_losses_loaded, "*")
-plt.loglog(MLPfitx, MLPfity, color = 'tab:blue')
-plt.loglog(CNN3fitx, CNN3fity, color = 'tab:orange')
-plt.loglog(CNN14fitx, CNN14fity, color = 'tab:green')
+plt.loglog(MLP_sizes_loaded, MLPfity, color = 'tab:blue')
+plt.loglog(CNN3_sizes_loaded, CNN3fity, color = 'tab:orange')
+plt.loglog(CNN14_sizes_loaded, CNN14fity, color = 'tab:green')
 plt.xlabel("Number of Parameters")
 plt.ylabel("Test Loss")
 plt.legend(["MLP", "$\\text{CNN}_{3x3}$", "$\\text{CNN}_{14x14}$", "Fit: $\\frac{e^{4.26}}{N^{.53}} $", "Fit: $\\frac{e^{3.98}}{N^{.56}} $", "Fit: $\\frac{e^{4.38}}{N^{.66}} $"])
