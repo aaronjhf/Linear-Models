@@ -12,11 +12,11 @@ torch.manual_seed(42)
 #input dimension
 D = 4
 #matrix dimension
-N = 2000
+N = 4000
 #batch dimension
 B = 64
 #number of data points
-P = 10000
+P = 4000
 
 
 # %%
@@ -100,16 +100,18 @@ sns.set_palette("plasma", len(loss_dict)-1)
 plt.figure(figsize=(8, 6))
 
 
-
-
 for gamma in [1e-05, 0.001, 0.1, 1]:
-    plt.plot([t for t in range(P//B)] , loss_dict[gamma], alpha=1.0)
+    plt.plot([t for t in range(P//B)] , loss_dict[gamma], alpha=1.0, label=f"$\gamma$ = {gamma}")
     plt.xscale('log')
     plt.yscale('log')
 
-plt.plot([t for t in range(P//B)] , loss_dict[0], 'k--', alpha = 0.3)
+plt.plot([t for t in range(P//B)] , loss_dict[0], 'k--', alpha = 1.0, label = "linearized")
 plt.xscale('log')
 plt.yscale('log')
+plt.legend()
+plt.title('Linearized Model and Lazy Training Regime')
+plt.xlabel('Batch Number')
+plt.ylabel('Loss')
 
 plt.show()
 # %%
@@ -157,13 +159,16 @@ for t in range(0, P//B):
     loss.backward()
     optimizer.step()
     loss_dict["linearized"].append(loss.item())
-    
+
 # %%
-plt.plot([t for t in range(P//B)] , loss_dict["linearized"], alpha = 1.0)
-plt.plot([t for t in range(P//B)] , loss_dict[1], alpha = 1.0)
+plt.plot([t for t in range(P//B)] , loss_dict["linearized"], alpha = 1.0, label = "linearized")
+plt.plot([t for t in range(P//B)] , loss_dict[1], alpha = 1.0, label = "$\gamma$ = 1")
 plt.xscale('log')
 plt.yscale('log')
-
+plt.legend()
+plt.title('Updating Linear Model vs. MLP')
+plt.xlabel('Batch Number')
+plt.ylabel('Loss')
 plt.show()
 # %%
 """
@@ -195,10 +200,13 @@ gamma = 1
 
 fwd_fn = lambda params, Xin, gamma : MLP(params, Xin, gamma) - MLP(params0, Xin, gamma)
 
-ntk = compute_ntk(fwd_fn, params, Xraw[0:10000], 1)
+ntk = compute_ntk(fwd_fn, params, Xraw, 1)
 spec = np.linalg.eigvalsh(np.array(ntk.detach()))
-plt.loglog([x for x in range(1, len(spec)+1)], sorted(spec)[::-1])
-plt.show()
+
+ntk_spec_dict = defaultdict(list)
+ntk_spec_dict["empiric"] = sorted(spec)[::-1]
+
+
 
 # %%
 def relu_ntk(X1, X2):
@@ -218,14 +226,59 @@ def relu_ntk(X1, X2):
     
     ntk = (torch.sin(theta) + (np.pi - theta) * torch.cos(theta)) / np.pi
     return ntk
-
-# Example usage
-ntk = relu_ntk(Xraw[0:10000], Xraw[0:10000])
-print(ntk)
-
+#%%
 # Plot the eigenvalues of the NTK matrix
+ntk  = relu_ntk(Xraw, Xraw)
 spec = np.linalg.eigvalsh(np.array(ntk.detach()))
-plt.loglog([x for x in range(1, len(spec)+1)], sorted(spec)[::-1])
+ntk_spec_dict["analytic"] = sorted(spec)[::-1]
+
+plt.plot([x for x in range(1, len(spec)+1)], ntk_spec_dict["empiric"], label = "empiric")
+plt.plot([x for x in range(1, len(spec)+1)], ntk_spec_dict["analytic"], label = "analytic")
+plt.xscale('log')
+plt.yscale('log')
+plt.title('Empirical vs. Analytic NTK Spectrum')
+plt.xlabel('$i$')
+plt.ylabel('$\lambda_i$')
+plt.legend()
 plt.show()
 
+
+#%%
+def gp_loss(X, Xst, Y, Yst):
+    # Ensure all tensors are in float64 precision
+    X = X.double()
+    Xst = Xst.double()
+    Y = Y.double()
+    Yst = Yst.double()
+
+    KXX = relu_ntk(X, X) + 1e-5 * torch.eye(X.shape[0], dtype=torch.float64)
+    KXXst = relu_ntk(X, Xst)
+    KXstX = KXXst.T
+    KXstXst = relu_ntk(Xst, Xst)
+
+    GP_mean = (KXstX @ torch.linalg.inv(KXX)) @ Y
+    GP_cov = KXstXst - (KXstX @ torch.linalg.inv(KXX) @ KXXst)
+    L = torch.linalg.cholesky(GP_cov)
+    fst_dist = torch.distributions.MultivariateNormal(GP_mean, scale_tril=L)
+    pred = fst_dist.sample()
+
+    return ((pred - Yst) ** 2).mean()
+
+# %%
+loss_dict["NTK"] = []
+for t in range(1, P // B):
+    loss = gp_loss(Xraw[0:t * B].double(), Xraw[t * B:(t + 1) * B].double(), Yraw[0:t * B].view(t * B).double(), Yraw[t * B:(t + 1) * B].view(B).double())
+    loss_dict["NTK"].append(loss.item())
+# %%
+plt.plot([t for t in range(P//B)] , loss_dict[0], "k--", alpha = 1.0, label = "linearized")
+plt.plot([t for t in range(1, P//B)] , loss_dict["NTK"], alpha = 1.0, label = "NTK")
+plt.plot([t for t in range(P//B)] , loss_dict["linearized"], alpha = 1.0, label = "linear w/ update")
+plt.plot([t for t in range(P//B)] , loss_dict[1], alpha = 1.0, label = "1")
+plt.xscale('log')
+plt.yscale('log')
+plt.legend()
+plt.title('GP w/ NTK, Linearized, Linear update, and MLP')
+plt.xlabel('Batch Number')
+plt.ylabel('Loss')
+plt.show()
 # %%
