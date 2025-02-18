@@ -12,7 +12,7 @@ torch.manual_seed(42)
 #input dimension
 D = 4
 #matrix dimension
-N = 4000
+N = 2000
 #batch dimension
 B = 64
 #number of data points
@@ -242,6 +242,25 @@ plt.ylabel('$\lambda_i$')
 plt.legend()
 plt.show()
 
+#%%
+#Look at degeneracy
+maxk = 20
+
+degen_ct = [(1+k)**2 for k in range(0, maxk)]
+ntk_avg = []
+for i in range(0, maxk):
+    st_idx = sum(degen_ct[0:i] )
+    e_idx = st_idx+degen_ct[i]
+    ntk_avg.append( np.mean( ntk_spec_dict["analytic"][st_idx:e_idx]  ) )
+
+plt.plot([x for x in range(1, maxk+1)], ntk_avg, "*")
+plt.xscale('log')
+plt.yscale('log')
+plt.title('NTK Spectrum Mod Degeneracy')
+plt.xlabel('$i$')
+plt.ylabel('$\lambda_i$')
+
+plt.show()
 
 #%%
 def gp_loss(X, Xst, Y, Yst):
