@@ -1,4 +1,4 @@
-#Explorations in Linear Models, NTKs, and Scaling
+# Explorations in Linear Models, NTKs, and Scaling
 
 ![image](https://github.com/user-attachments/assets/553d5c34-9981-4cb3-8113-d8a664e28a13)
 
