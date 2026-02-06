@@ -10,8 +10,8 @@ I also look at aspects of linearization such as the Neural Tangent Kernel (NTK).
 
 <img width="511" height="413" alt="ntk_fac1" src="https://github.com/user-attachments/assets/0fe50d15-6d60-4fe0-91d8-7f0361878af2" /> 
 
-Furthermore, the NTK spectrum exhibits log-log scaling
+Furthermore, the NTK spectrum exhibits log-log scaling, one of the many scalings observed and intimately connected to the ultimate scalings observed in the loss when trainin models
 
 <img width="578" height="459" alt="ntkloglog" src="https://github.com/user-attachments/assets/ca2fc82b-e2ef-4e59-b739-6b76c3759cf6" />
 
-It would be interesting to understand any connections between the various scalings observed here and the origin of factorization.
+
