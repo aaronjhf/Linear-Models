@@ -6,7 +6,7 @@ I also follow "A Solveable Model of Neural Scaling Laws" by Maloney, Roberts, an
 ![image](https://github.com/user-attachments/assets/553d5c34-9981-4cb3-8113-d8a664e28a13)
 
 
-I also look at aspects of linearization such as the Neural Tangent Kernel (NTK). In particular I investigate the factorization of the NTK when a model has multi-dimensional outputs e.g. classification tasks like in MNIST. The figure below demonstrates empirically that the NTK does indeed factorize.
+I also look at aspects of linearization such as the Neural Tangent Kernel (NTK). In particular I investigate the factorization of the NTK when a model has multi-dimensional outputs e.g. classification tasks like in MNIST. The figure below demonstrates empirically that the NTK does indeed factorize. The 10 channels are the usual digit classes. Having a common, universal NTK means that the matrix must be a multiple of the identity, which is indeed observed below.
 
 <img width="511" height="413" alt="ntk_fac1" src="https://github.com/user-attachments/assets/0fe50d15-6d60-4fe0-91d8-7f0361878af2" /> 
 
