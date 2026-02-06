@@ -13,3 +13,5 @@ I also look at aspects of linearization such as the Neural Tangent Kernel (NTK).
 Furthermore, the NTK spectrum exhibits log-log scaling
 
 <img width="578" height="459" alt="ntkloglog" src="https://github.com/user-attachments/assets/ca2fc82b-e2ef-4e59-b739-6b76c3759cf6" />
+
+It would be interesting to understand any connections between the various scalings observed here and the origin of factorization.
