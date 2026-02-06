@@ -14,6 +14,6 @@ Furthermore, the NTK spectrum exhibits log-log scaling, one of the many scalings
 
 <img width="578" height="459" alt="ntkloglog" src="https://github.com/user-attachments/assets/ca2fc82b-e2ef-4e59-b739-6b76c3759cf6" />
 
-I tie things together and also study model training in the lazy regime.
+
 
 
